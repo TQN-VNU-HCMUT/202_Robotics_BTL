@@ -52,15 +52,15 @@ end
 function SCARA_v1_OpeningFcn(hObject, ~, handles, varargin)
 
 % Create Links and link them together, respectively
-a2 = 400;       d2 = 335.75;   theta2 = 180;
-a3 = 250;                      theta3 = 50;
+a2 = 400;       d2 = 373.5;    theta2 = 180;
+a3 = 250;                      theta3 = 0;
                 d4 = 0;
-alpha5 = 180;   d5 = -50;      theta5 = 180;
+alpha5 = 180;   d5 = -17;      theta5 = 180;
 
 link(1) = C_Link('Revolute',  [0    0        0       0],      @F_Simu_Shoulder);
 link(2) = C_Link('Revolute',  [a2   0        d2      theta2], @F_Simu_Elbow,   link(1));
-link(3) = C_Link('Revolute',  [a3   0        0       theta3], @F_Simu_Elbow,   link(2));
-link(4) = C_Link('Prismatic', [0    0        d4      0],      @F_Simu_Elbow,   link(3));
+link(3) = C_Link('Revolute',  [a3   0        0       theta3], @F_Simu_Wrist,   link(2));
+link(4) = C_Link('Prismatic', [0    0        d4      0],      @F_Simu_Shaft,   link(3));
 link(5) = C_Link('Revolute',  [0    alpha5   d5      theta5], @F_Simu_Gripper, link(4));
 
 wholeSystem = C_WholeSystem(link,handles.axes3);
@@ -73,8 +73,8 @@ set(handles.slider_theta2,'Min',        0);
 set(handles.slider_theta2,'Value', theta2);
 set(handles.value_theta2, 'String',theta2);
 
-set(handles.slider_theta3,'Max',      100);
-set(handles.slider_theta3,'Min',        0);
+set(handles.slider_theta3,'Max',      150);
+set(handles.slider_theta3,'Min',     -150);
 set(handles.slider_theta3,'Value', theta3);
 set(handles.value_theta3, 'String',theta3);
 

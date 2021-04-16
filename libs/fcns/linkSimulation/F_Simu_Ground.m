@@ -1,3 +1,8 @@
+
+% Programmed by: Nguyen Thai Quang
+% Program date: 29th March 2021
+% Robotics: Modelling, Planning and Control
+
 function F_Simu_Ground(axisHandles,opacity)
     
     grid(axisHandles, 'on')
@@ -8,8 +13,8 @@ function F_Simu_Ground(axisHandles,opacity)
     view(axisHandles, [-163 25]);
     
     %% Plot the base ground
-    baseProp = C_SimuProperties(50, 800, 40, [193 193 193]/255, opacity);
-    F_Cylinder(axisHandles, [0 0 0], [0 0 -1], baseProp);
-    
+    baseProp = C_SimuProperties(50, 800, 0, 0, 10, [65 60 105]/255, opacity);
+    F_Rounded_Box(axisHandles, [0 0 0], [1 0 0], [0 0 -1], baseProp);
+    disp("hihi")
 end
 
