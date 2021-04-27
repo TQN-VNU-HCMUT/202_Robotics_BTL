@@ -27,7 +27,7 @@ function varargout = SCARA_v1(varargin)
 
 % Edit the above text to modify the response to help SCARA_v1
 
-% Last Modified by GUIDE v2.5 11-Apr-2021 16:14:31
+% Last Modified by GUIDE v2.5 26-Apr-2021 23:37:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,7 +55,7 @@ function SCARA_v1_OpeningFcn(hObject, ~, handles, varargin)
 a2 = 400;       d2 = 373.5;    theta2 = 180;
 a3 = 250;                      theta3 = 0;
                 d4 = 0;
-alpha5 = 180;   d5 = -17;      theta5 = 180;
+alpha5 = 180;   d5 = -17;      theta5 = 0;
 
 link(1) = C_Link('Revolute',  [0    0        0       0],      @F_Simu_Shoulder);
 link(2) = C_Link('Revolute',  [a2   0        d2      theta2], @F_Simu_Elbow,   link(1));
@@ -63,7 +63,9 @@ link(3) = C_Link('Revolute',  [a3   0        0       theta3], @F_Simu_Wrist,   l
 link(4) = C_Link('Prismatic', [0    0        d4      0],      @F_Simu_Shaft,   link(3));
 link(5) = C_Link('Revolute',  [0    alpha5   d5      theta5], @F_Simu_Gripper, link(4));
 
-wholeSystem = C_WholeSystem(link,handles.axes3);
+endEffectorHandles = [handles.endEffector_x, handles.endEffector_y,...
+                      handles.endEffector_z, handles.endEffector_psi];
+wholeSystem = C_WholeSystem(link,handles.axisWholeSystem,endEffectorHandles);
 
 handles.wholeSystem = wholeSystem;
 wholeSystem.initialize;
@@ -90,8 +92,8 @@ set(handles.value_theta5, 'String',theta5);
 
 set(handles.slider_opacity,'Max',     1);
 set(handles.slider_opacity,'Min',     0);
-set(handles.slider_opacity,'Value', 0.5);
-set(handles.value_opacity, 'String',0.5);
+set(handles.slider_opacity,'Value', 0.7);
+set(handles.value_opacity, 'String',0.7);
 
 set(handles.enable_axis1,'Value',false);
 set(handles.enable_axis2,'Value',false);
@@ -116,7 +118,10 @@ function varargout = SCARA_v1_OutputFcn(~, ~, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function axes3_CreateFcn(~, ~, ~)
+function axisWholeSystem_CreateFcn(~, ~, ~)
+function axisQ_CreateFcn(~, ~, ~)
+function axisV_CreateFcn(~, ~, ~)
+function axisA_CreateFcn(~, ~, ~)
 function popupmenu2_CreateFcn(~, ~, ~)
 
 %-------------------------------------------------%
@@ -279,8 +284,6 @@ function desired_x_CreateFcn(hObject, ~, ~)
         set(hObject,'BackgroundColor','white');
     end
 
-
-
 function desired_y_Callback(hObject, ~, handles)
     textBoxValue = str2double(get(hObject,'String'));
 %     outputValue = F_Limit_Variable(handles.slider_d4, textBoxValue);
@@ -290,8 +293,6 @@ function desired_y_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function desired_z_Callback(hObject, ~, handles)
     textBoxValue = str2double(get(hObject,'String'));
@@ -303,8 +304,6 @@ function desired_z_CreateFcn(hObject, ~, ~)
         set(hObject,'BackgroundColor','white');
     end
 
-
-
 function desired_psi_Callback(hObject, ~, handles)
     textBoxValue = str2double(get(hObject,'String'));
 %     outputValue = F_Limit_Variable(handles.slider_d4, textBoxValue);
@@ -314,3 +313,9 @@ function desired_psi_CreateFcn(hObject, ~, ~)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor','white');
     end
+
+
+function button_deletePath_Callback(~, ~, handles)
+    handles.wholeSystem.deletePath;
+
+

@@ -5,11 +5,11 @@
 
 classdef C_Link < dlnode
     properties
-        type C_LinkType = C_LinkType.Prismatic;
+        type C_LinkType         = C_LinkType.Prismatic;
         a = 0;      alpha = 0;      d = 0;      theta = 0;
-        opacity {mustBeNumeric} = 0.5;
-        desired = 0;
-        distance = 0;
+        opacity {mustBeNumeric} = 0.7;
+        desired {mustBeNumeric} = 0;
+        distance{mustBeNumeric} = 0;
         simuFunction          % Function to draw Simulation for specific Links
     end
     properties (Access = private)
@@ -38,6 +38,11 @@ classdef C_Link < dlnode
                 end
                 
                 % Calculate the 0Tn DHMatrix for this n-th Link
+                if linkObj.isPrismatic
+                    linkObj.desired = linkObj.d;
+                elseif linkObj.isRevolute
+                    linkObj.desired = linkObj.theta;
+                end
                 linkObj.calculateDHMatrix(false);
                 linkObj.calculateEta(false);
             else
@@ -55,16 +60,12 @@ classdef C_Link < dlnode
         function onParamChanged(this, axisHandles, paramName, paramValue, drawEnable)
             switch paramName
                 case 'd'
-                    if this.isPrismatic
-                        this.d = paramValue;
-                    else
-                        error('This Link is not Prismatic.')
+                    if this.isPrismatic, this.desired = paramValue;
+                    else,                error('This Link is not Prismatic.')
                     end
                 case 'theta'
-                    if this.isRevolute
-                        this.theta = deg2rad(paramValue);
-                    else
-                        error('This Link is not Revolute.')
+                    if this.isRevolute, this.desired = deg2rad(paramValue);
+                    else,               error('This Link is not Revolute.')
                     end
                 case 'opacity'
                     this.opacity = paramValue;
@@ -74,8 +75,6 @@ classdef C_Link < dlnode
                 otherwise
                     error('Cannot clarify this param.')
             end
-            this.calculateDHMatrix(true);
-            this.calculateEta(true);
             if drawEnable
                 this.draw(axisHandles,true);
             end
@@ -95,21 +94,19 @@ classdef C_Link < dlnode
         %% Calculate desired value of variable param
         function setDesired(this, axisHandles, paramValue)
             this.desired = paramValue;
-            step = 50;
             if this.isPrismatic
-                this.distance = this.desired-this.d;
+                this.distance = this.desired - this.d;
             elseif this.isRevolute
-                this.distance = this.desired-this.theta;
+                this.distance = this.desired - this.theta;
             end
-            for i = 1:step
+            if abs(this.distance) > 0.0001
                 if this.isPrismatic
-                    tmp = this.d + 1/step*this.distance;
+                    tmp = this.d + this.distance;
                     this.onParamChanged(axisHandles,'d',tmp,true);
                 elseif this.isRevolute
-                    tmp = this.theta + 1/step*this.distance;
+                    tmp = this.theta + this.distance;
                     this.onParamChanged(axisHandles,'theta',rad2deg(tmp),true);
                 end
-                pause(0.03)
             end
         end
         
@@ -130,16 +127,20 @@ classdef C_Link < dlnode
                 case 'DHMatrix'
                     property = this.DHMatrix;
                 case 'x'
-                    property = this.frame.posi(1);
+                    property = round(this.frame.posi(1),2);
                 case 'y'
-                    property = this.frame.posi(2);
+                    property = round(this.frame.posi(2),2);
                 case 'z'
-                    property = this.frame.posi(3);
+                    property = round(this.frame.posi(3),2);
+                case 'psi'
+                    property = round(rad2deg(atan2(this.frame.orien(1,2),this.frame.orien(1,1))),2);
             end
         end
         
         %% Draw Simulation
         function draw(this, axisHandles, continueFlag)
+            this.calculateDHMatrix(true);
+            this.calculateEta(true);
             this.deleteSimulation(axisHandles,continueFlag);
             this.drawSimulation(axisHandles,continueFlag);
         end
@@ -148,10 +149,20 @@ classdef C_Link < dlnode
     methods (Access = private)
         %% Calculate DH Matrix recursively
         function calculateDHMatrix(this, continueFlag)
-            subMatrix = [cos(this.theta)  -cos(this.alpha)*sin(this.theta) sin(this.alpha)*sin(this.theta)  this.a*cos(this.theta);...
-                         sin(this.theta)  cos(this.alpha)*cos(this.theta)  -sin(this.alpha)*cos(this.theta) this.a*sin(this.theta);...
-                         0                sin(this.alpha)                  cos(this.alpha)                  this.d;...
-                         0                0                                0                                1];
+            if this.isPrismatic
+                this.d     = this.desired;
+            elseif this.isRevolute
+                this.theta = this.desired;
+            end
+            tmpA     = this.a;
+            tmpAlpha = this.alpha;
+            tmpD     = this.d;
+            tmpTheta = this.theta;
+            
+            subMatrix = [cos(tmpTheta)  -cos(tmpAlpha)*sin(tmpTheta)  sin(tmpAlpha)*sin(tmpTheta)  tmpA*cos(tmpTheta);...
+                         sin(tmpTheta)  cos(tmpAlpha)*cos(tmpTheta)   -sin(tmpAlpha)*cos(tmpTheta) tmpA*sin(tmpTheta);...
+                         0              sin(tmpAlpha)                 cos(tmpAlpha)                tmpD;...
+                         0              0                             0                            1];
             
             % Multiple current Matrix with previous one to form a n-th DH Matrix         
             if isa(this.Prev, 'C_Link')
