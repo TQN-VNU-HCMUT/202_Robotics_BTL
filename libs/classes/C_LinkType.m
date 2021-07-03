@@ -1,8 +1,13 @@
+
+% Programmed by: Quang-Nguyen Thai
+% Program date: 29th March 2021
+% Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
+
 classdef C_LinkType
     enumeration
         Prismatic
         Revolute
-        Fixed
     end
     methods
         function trueFalse = isPrismatic(obj)
@@ -10,9 +15,6 @@ classdef C_LinkType
         end
         function trueFalse = isRevolute(obj)
                 trueFalse = C_LinkType.Revolute == obj;
-        end
-        function trueFalse = isFixed(obj)
-                trueFalse = C_LinkType.Fixed == obj;
         end
     end
 end

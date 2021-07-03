@@ -1,3 +1,9 @@
+
+% Programmed by: Quang-Nguyen Thai
+% Program date: 29th March 2021
+% Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
+
 function plotLink = F_Cylinder(axisHandles, position, orientation, properties)
 
     if ~isa(properties, 'C_SimuProperties')

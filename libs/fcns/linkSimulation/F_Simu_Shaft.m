@@ -1,7 +1,8 @@
 
-% Programmed by: Nguyen Thai Quang
+% Programmed by: Quang-Nguyen Thai
 % Program date: 29th March 2021
 % Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
 
 function plotLink = F_Simu_Shaft(axisHandles,position,orientation,opacity)
     shoulderProp = C_SimuProperties(473, 20, 0, 0, 40, [242 180 180]/255, opacity);

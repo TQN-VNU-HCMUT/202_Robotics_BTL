@@ -1,7 +1,8 @@
 
-% Programmed by: Nguyen Thai Quang
+% Programmed by: Quang-Nguyen Thai
 % Program date: 29th March 2021
 % Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
 
 function F_Simu_Ground(axisHandles,opacity)
     

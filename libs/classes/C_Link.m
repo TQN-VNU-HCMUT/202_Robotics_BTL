@@ -1,7 +1,8 @@
 
-% Programmed by: Nguyen Thai Quang
+% Programmed by: Quang-Nguyen Thai
 % Program date: 29th March 2021
 % Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
 
 classdef C_Link < dlnode
     properties
@@ -11,29 +12,35 @@ classdef C_Link < dlnode
         desired {mustBeNumeric} = 0;
         distance{mustBeNumeric} = 0;
         simuFunction          % Function to draw Simulation for specific Links
+        plotQVA     = struct('axisQ',[],'axisV',[],'axisA',[],'q',[],'v',[],'a',[],...
+                             'plotAxisQ',[],'plotAxisV',[],'plotAxisA',[]);
     end
     properties (Access = private)
         base        = struct('posi',[0 0 0 1]', 'orien',[1 0 0 1; 0 1 0 1; 0 0 1 1]');
         frame       = struct('posi',[0 0 0],    'orien',eye(3));
         DHMatrix    = eye(4);
         plotLink    = [];
-        plotAxises  = struct('xyz',[], 'enabled',false);
+        plotAxises  = struct('xyz',[],'enabled',false);
+        sliderHandles
+        valueHandles
     end
     
     methods
         %% Input Link Object Params
-        function linkObj = C_Link(linkType,DHParam,simuFunction,previousLink)
+        function linkObj = C_Link(linkType,DHParam,simuFunction,sliderHandles,valueHandles,previousLink)
             if nargin == 0
-            elseif (nargin == 3) || (nargin == 4)
-                linkObj.type         = linkType;
-                linkObj.a            = DHParam(1);
-                linkObj.alpha        = deg2rad(DHParam(2));
-                linkObj.d            = DHParam(3);
-                linkObj.theta        = deg2rad(DHParam(4));
-                linkObj.simuFunction = simuFunction;
+            elseif (nargin == 3) || (nargin == 6)
+                linkObj.type          = linkType;
+                linkObj.a             = DHParam(1);
+                linkObj.alpha         = deg2rad(DHParam(2));
+                linkObj.d             = DHParam(3);
+                linkObj.theta         = deg2rad(DHParam(4));
+                linkObj.simuFunction  = simuFunction;
                 
                 % Insert this Link after the previous one to form a Linked List
-                if nargin == 4
+                if nargin == 6
+                    linkObj.sliderHandles = sliderHandles;
+                    linkObj.valueHandles  = valueHandles;
                     linkObj.insertAfter(previousLink);
                 end
                 
@@ -56,16 +63,69 @@ classdef C_Link < dlnode
             this.drawSimulation(axisHandles,true);
         end
         
+        %% Export to slider and value textbox
+        function exportSliderValue(this)
+            if this.isPrismatic
+                set(this.sliderHandles,'Value',this.d);
+                set(this.valueHandles,'String',this.d);
+            elseif this.isRevolute
+                set(this.sliderHandles,'Value',rad2deg(this.theta));
+                set(this.valueHandles,'String',rad2deg(this.theta));
+            end
+        end
+        
+        %% Export to QVA Plot for this Link
+        function saveQ(this)
+            tmpLength = length(this.plotQVA.q);
+            if (tmpLength == 0)
+                if this.isPrismatic,    this.plotQVA.q = [this.plotQVA.q, this.d];
+                elseif this.isRevolute, this.plotQVA.q = [this.plotQVA.q, rad2deg(this.theta)];
+                end
+            else
+                if this.isPrismatic && (this.d ~= this.plotQVA.q(tmpLength))
+                    this.plotQVA.q = [this.plotQVA.q, this.d];
+                elseif this.isRevolute && (rad2deg(this.theta) ~= this.plotQVA.q(tmpLength))
+                    this.plotQVA.q = [this.plotQVA.q, rad2deg(this.theta)];
+                end
+            end
+        end
+        
+        %% 
+        function exportQVA(this, timerPeriod)
+            % Calculate velocity & accelorater
+            this.plotQVA.v = diff(this.plotQVA.q);
+            this.plotQVA.a = diff(this.plotQVA.v);
+            
+            qTime = (1:length(this.plotQVA.q))*timerPeriod;
+            vTime = (1:length(this.plotQVA.v))*timerPeriod;
+            aTime = (1:length(this.plotQVA.a))*timerPeriod;
+            
+            this.plotQVA.plotAxisQ = plot(this.plotQVA.axisQ, qTime, this.plotQVA.q, 'Color',[0 0.4470 0.7410],'LineWidth',1.5);
+            this.plotQVA.plotAxisV = plot(this.plotQVA.axisV, vTime, this.plotQVA.v, 'Color',[0 0.4470 0.7410],'LineWidth',1.5);
+            this.plotQVA.plotAxisA = plot(this.plotQVA.axisA, aTime, this.plotQVA.a, 'Color',[0 0.4470 0.7410],'LineWidth',1.5);
+        end
+        
+        %% Delete Path Planning Plot
+        function deletePathPlot(this)
+            this.plotQVA.q = [];
+            this.plotQVA.v = [];
+            this.plotQVA.a = [];
+            
+            delete(this.plotQVA.plotAxisQ);
+            delete(this.plotQVA.plotAxisV);
+            delete(this.plotQVA.plotAxisA);
+        end
+        
         %% Re-calculate DHMatrixes on Params Changed
         function onParamChanged(this, axisHandles, paramName, paramValue, drawEnable)
             switch paramName
                 case 'd'
                     if this.isPrismatic, this.desired = paramValue;
-                    else,                error('This Link is not Prismatic.')
+                    else, error('This Link is not Prismatic.')
                     end
                 case 'theta'
                     if this.isRevolute, this.desired = deg2rad(paramValue);
-                    else,               error('This Link is not Revolute.')
+                    else, error('This Link is not Revolute.')
                     end
                 case 'opacity'
                     this.opacity = paramValue;
@@ -75,6 +135,8 @@ classdef C_Link < dlnode
                 otherwise
                     error('Cannot clarify this param.')
             end
+            this.calculateDHMatrix(true);
+            this.calculateEta(true);
             if drawEnable
                 this.draw(axisHandles,true);
             end
@@ -117,30 +179,20 @@ classdef C_Link < dlnode
         function trueFalse = isRevolute(this)
             trueFalse = this.type.isRevolute;
         end
-        function trueFalse = isFixed(this)
-            trueFalse = this.type.isFixed;
-        end
         
         %% Get Properties (for debugging)
         function property = get(this, propertyName)
             switch propertyName
-                case 'DHMatrix'
-                    property = this.DHMatrix;
-                case 'x'
-                    property = round(this.frame.posi(1),2);
-                case 'y'
-                    property = round(this.frame.posi(2),2);
-                case 'z'
-                    property = round(this.frame.posi(3),2);
-                case 'psi'
-                    property = round(rad2deg(atan2(this.frame.orien(1,2),this.frame.orien(1,1))),2);
+                case 'DHMatrix', property = this.DHMatrix;
+                case 'x',        property = round(this.frame.posi(1),2);
+                case 'y',        property = round(this.frame.posi(2),2);
+                case 'z',        property = round(this.frame.posi(3),2);
+                case 'psi',      property = round(rad2deg(atan2(this.frame.orien(1,2),this.frame.orien(1,1))),2);
             end
         end
         
         %% Draw Simulation
         function draw(this, axisHandles, continueFlag)
-            this.calculateDHMatrix(true);
-            this.calculateEta(true);
             this.deleteSimulation(axisHandles,continueFlag);
             this.drawSimulation(axisHandles,continueFlag);
         end

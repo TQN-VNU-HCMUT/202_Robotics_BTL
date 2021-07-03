@@ -1,3 +1,9 @@
+
+% Programmed by: Quang-Nguyen Thai
+% Program date: 29th March 2021
+% Robotics: Modelling, Planning and Control
+% Contact: nguyenquangthai03122000@gmail.com
+
 function transformMatrix = F_Transform_Matrix(Rotation, Translation)
     phi   = Rotation(1);
     theta = Rotation(2);
